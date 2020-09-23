@@ -10,7 +10,7 @@ pub trait LogicalRule: Send + Sync {
     fn apply(&self, a: bool, b: bool, c: bool) -> Option<SubstitutionToken>;
 }
 
-type RuleFn = Box<dyn Fn(bool, bool, bool) -> bool + Send + Sync>;
+pub type RuleFn = Box<dyn Fn(bool, bool, bool) -> bool + Send + Sync>;
 
 /// Stores `RuleFn` function that used for calculation and corresponding `SubstitutionToken`.
 ///

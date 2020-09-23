@@ -17,7 +17,7 @@ pub trait ArithmeticRule: Send + Sync {
     fn apply(&self, d: f64, e: i32, f: i32) -> f64;
 }
 
-type RuleFn = Box<dyn Fn(f64, i32, i32) -> f64 + Send + Sync>;
+pub type RuleFn = Box<dyn Fn(f64, i32, i32) -> f64 + Send + Sync>;
 
 /// Stores `RuleFn` function that used for for calculation.
 ///
