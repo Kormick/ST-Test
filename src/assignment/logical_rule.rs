@@ -1,16 +1,18 @@
 use crate::assignment::arithmetic_rule::SubstitutionToken;
 
-pub trait LogicalRule {
+pub trait LogicalRule: Send + Sync {
     fn apply(&self, a: bool, b: bool, c: bool) -> Option<SubstitutionToken>;
 }
 
+type RuleFn = Box<dyn Fn(bool, bool, bool) -> bool + Send + Sync>;
+
 pub struct LogicalRuleFn {
     token: SubstitutionToken,
-    rule_fn: Box<dyn Fn(bool, bool, bool) -> bool>,
+    rule_fn: RuleFn,
 }
 
 impl LogicalRuleFn {
-    pub fn new(token: SubstitutionToken, rule_fn: Box<dyn Fn(bool, bool, bool) -> bool>) -> Self {
+    pub fn new(token: SubstitutionToken, rule_fn: RuleFn) -> Self {
         Self { token, rule_fn }
     }
 }
