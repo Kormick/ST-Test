@@ -25,7 +25,14 @@ impl Assignment {
         Self {
             logical_rules: Vec::new(),
             arithmetic_rules: HashMap::new(),
+    pub fn with_rules(mut self, base: bool, custom: bool) -> Self {
+        if base {
+            Self::add_base_rules(&mut self);
         }
+        if custom {
+            Self::add_custom_rules(&mut self);
+        }
+        self
     }
 
     fn add_logical_rule(&mut self, rule: Box<dyn LogicalRule>) {
@@ -54,6 +61,34 @@ impl Assignment {
 
         Ok((token, rule.apply(args.d, args.e, args.f)))
     }
+
+    fn add_base_rules(obj: &mut Assignment) {
+        let rule = LogicalRuleFn::new(SubstitutionToken::M, Box::new(|a, b, c| a && b && !c));
+        obj.add_logical_rule(Box::new(rule));
+        let rule = LogicalRuleFn::new(SubstitutionToken::P, Box::new(|a, b, c| a && b && c));
+        obj.add_logical_rule(Box::new(rule));
+        let rule = LogicalRuleFn::new(SubstitutionToken::T, Box::new(|a, b, c| !a && b && c));
+        obj.add_logical_rule(Box::new(rule));
+
+        let rule = ArithmeticRuleFn::new(Box::new(|d, e, f| d + (d * e as f64 / 10.0)));
+        obj.add_arithmetic_rule(SubstitutionToken::M, Box::new(rule));
+        let rule = ArithmeticRuleFn::new(Box::new(|d, e, f| d + (d * (e - f) as f64 / 25.5)));
+        obj.add_arithmetic_rule(SubstitutionToken::P, Box::new(rule));
+        let rule = ArithmeticRuleFn::new(Box::new(|d, e, f| d - (d * f as f64 / 30.0)));
+        obj.add_arithmetic_rule(SubstitutionToken::T, Box::new(rule));
+    }
+
+    fn add_custom_rules(obj: &mut Assignment) {
+        let rule = ArithmeticRuleFn::new(Box::new(|d, e, f| 2.0 * d + (d * e as f64 / 100.0)));
+        obj.add_arithmetic_rule(SubstitutionToken::P, Box::new(rule));
+
+        let rule = LogicalRuleFn::new(SubstitutionToken::T, Box::new(|a, b, c| a && b && !c));
+        obj.add_logical_rule(Box::new(rule));
+        let rule = LogicalRuleFn::new(SubstitutionToken::M, Box::new(|a, b, c| a && !b && c));
+        obj.add_logical_rule(Box::new(rule));
+        let rule = ArithmeticRuleFn::new(Box::new(|d, e, f| f as f64 + d + (d * e as f64 / 100.0)));
+        obj.add_arithmetic_rule(SubstitutionToken::M, Box::new(rule));
+    }
 }
 
 #[test]
@@ -62,6 +97,25 @@ fn test_new() {
 
     assert!(assignment.logical_rules.is_empty());
     assert!(assignment.arithmetic_rules.is_empty());
+}
+
+#[test]
+fn test_with_rules() {
+    let assignment = Assignment::new().with_rules(false, false);
+    assert!(assignment.logical_rules.is_empty());
+    assert!(assignment.arithmetic_rules.is_empty());
+
+    let assignment = Assignment::new().with_rules(true, false);
+    assert!(!assignment.logical_rules.is_empty());
+    assert!(!assignment.arithmetic_rules.is_empty());
+
+    let assignment = Assignment::new().with_rules(false, true);
+    assert!(!assignment.logical_rules.is_empty());
+    assert!(!assignment.arithmetic_rules.is_empty());
+
+    let assignment = Assignment::new().with_rules(true, true);
+    assert!(!assignment.logical_rules.is_empty());
+    assert!(!assignment.arithmetic_rules.is_empty());
 }
 
 #[test]
