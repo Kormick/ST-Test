@@ -66,6 +66,12 @@ impl Assignment {
         self
     }
 
+    /// Removes all rules from `Assignment`.
+    pub fn remove_rules(&mut self) {
+        self.logical_rules.clear();
+        self.arithmetic_rules.clear();
+    }
+
     /// Adds `LogicalRule` to `Assignment`.
     pub fn add_logical_rule(&mut self, rule: Box<dyn LogicalRule>) {
         self.logical_rules.push(rule);
@@ -208,6 +214,36 @@ fn test_with_rules() {
     let assignment = Assignment::new().with_rules(true, true);
     assert!(!assignment.logical_rules.is_empty());
     assert!(!assignment.arithmetic_rules.is_empty());
+}
+
+#[test]
+fn test_remove_rules() {
+    let mut assignment = Assignment::new();
+
+    assignment
+        .add_logical_rule_from_str(SubstitutionToken::M, "A".to_owned())
+        .unwrap();
+    assignment
+        .add_arithmetic_rule_from_str(SubstitutionToken::M, "D".to_owned())
+        .unwrap();
+
+    assert_eq!(assignment.logical_rules.len(), 1);
+    assert_eq!(assignment.arithmetic_rules.len(), 1);
+
+    assignment.remove_rules();
+
+    assert_eq!(assignment.logical_rules.len(), 0);
+    assert_eq!(assignment.arithmetic_rules.len(), 0);
+
+    assignment
+        .add_logical_rule_from_str(SubstitutionToken::M, "A".to_owned())
+        .unwrap();
+    assignment
+        .add_arithmetic_rule_from_str(SubstitutionToken::M, "D".to_owned())
+        .unwrap();
+
+    assert_eq!(assignment.logical_rules.len(), 1);
+    assert_eq!(assignment.arithmetic_rules.len(), 1);
 }
 
 #[test]

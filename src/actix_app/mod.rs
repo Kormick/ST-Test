@@ -1,6 +1,6 @@
 //! Implementation of simple actix application for assignment.
 //!
-//! Implements function to create and run HttpServer, 
+//! Implements function to create and run HttpServer,
 //! add Assignment as server application data and bind endpoints.
 //!
 //! # Endpoints
@@ -21,6 +21,10 @@
 //!     Returns `HttpResponse::Ok()` if new rule added successfully,
 //!     otherwise returns `HttpResponse::BadRequest` with error message in JSON.
 //!
+//! * /remove_rules
+//!
+//!     Endpoint to remove rules from `Assignment`.
+//!
 //! * /eval
 //!
 //!     Endpoint for assignment calculation.
@@ -29,7 +33,7 @@
 //!     If calculation is successful, returns `HttpResponse::Ok()` with result in JSON,
 //!     otherwise `HttpResponse::BadRequest()` with error message in JSON.
 
-use actix_web::{middleware, post, web, App, HttpResponse, HttpServer, Result};
+use actix_web::{delete, middleware, post, web, App, HttpResponse, HttpServer, Result};
 use serde::{Deserialize, Serialize};
 
 use std::sync::{Arc, RwLock};
@@ -81,6 +85,15 @@ pub async fn add_arithmetic_rule(
     } else {
         Ok(HttpResponse::Ok().json(res.unwrap()))
     }
+}
+
+/// Endpoint to remove rules from `Assignment`.
+#[delete("/remove_rules")]
+pub async fn remove_rules(data: web::Data<Arc<RwLock<Assignment>>>) -> Result<HttpResponse> {
+    let mut data = (*data).write().unwrap();
+    data.remove_rules();
+
+    Ok(HttpResponse::Ok().finish())
 }
 
 /// Endpoint for assignment calculation.
@@ -187,6 +200,54 @@ mod tests {
             .to_request();
         let resp = test::call_service(&mut app, req).await;
         assert_eq!(resp.status(), http::StatusCode::BAD_REQUEST);
+    }
+
+    #[actix_rt::test]
+    async fn test_remove_rules() {
+        let data = web::Data::new(Arc::new(RwLock::new(
+            Assignment::new().with_rules(true, false),
+        )));
+        let mut app = test::init_service(
+            App::new()
+                .app_data(data.clone())
+                .service(remove_rules)
+                .service(eval),
+        )
+        .await;
+
+        let req = test::TestRequest::post()
+            .uri("/eval")
+            .set_json(&InputSet {
+                a: true,
+                b: true,
+                c: false,
+                d: 1.0,
+                e: 2,
+                f: 3,
+            })
+            .to_request();
+        let resp: (SubstitutionToken, f64) = test::read_response_json(&mut app, req).await;
+        assert_eq!(resp, (SubstitutionToken::M, 1.2));
+
+        let req = test::TestRequest::delete()
+            .uri("/remove_rules")
+            .to_request();
+        let resp = test::call_service(&mut app, req).await;
+        assert_eq!(resp.status(), http::StatusCode::OK);
+
+        let req = test::TestRequest::post()
+            .uri("/eval")
+            .set_json(&InputSet {
+                a: true,
+                b: true,
+                c: false,
+                d: 1.0,
+                e: 2,
+                f: 3,
+            })
+            .to_request();
+        let resp: String = test::read_response_json(&mut app, req).await;
+        assert_eq!(resp, "Failed to apply logical rule.");
     }
 
     #[actix_rt::test]
