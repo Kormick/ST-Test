@@ -1,9 +1,16 @@
+//! Implements simple actix application for assignment.
+
 use actix_web::{middleware, post, web, App, HttpResponse, HttpServer, Result};
 
 use std::sync::{Arc, RwLock};
 
 use crate::assignment::{Assignment, InputSet};
 
+/// Endpoint for assignment calculation.
+/// Accepts `InputSet` in JSON format.
+/// 
+/// If calculation is successful, returns `HttpResponse::Ok()` with result in JSON,
+/// otherwise `HttpResponse::BadRequest()` with error message in JSON.
 #[post("/eval")]
 pub async fn eval(
     data: web::Data<Arc<RwLock<Assignment>>>,
@@ -19,6 +26,7 @@ pub async fn eval(
     }
 }
 
+/// Creates and runs `HttpServer`, adds `Assignment` as server application data and binds endpoints.
 pub async fn run_actix_app() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", "actix_web=info");
     env_logger::init();

@@ -1,3 +1,5 @@
+//! Implements assignment's main logic.
+
 pub mod arithmetic_rule;
 pub mod logical_rule;
 
@@ -9,6 +11,7 @@ use crate::assignment::{
     logical_rule::{LogicalRule, LogicalRuleFn},
 };
 
+/// Set of input arguments for calculation.
 #[derive(Default, Serialize, Deserialize)]
 pub struct InputSet {
     pub a: bool,
@@ -19,12 +22,28 @@ pub struct InputSet {
     pub f: i32,
 }
 
+/// Main class for substitution calculation.
+/// Contains set of `LogicalRule` and `ArithmeticRule`
+/// and implements methods to work with them.
+///
+/// # Examples
+///
+/// ```
+/// let assignment = Assignment::new();
+/// let l_rule = LogicalRuleFn::new(SubstitutionToken::M, Box::new(|_, _, _| true));
+/// let a_rule = ArithmeticRuleFn::new(Box::new(|_, _, _| 42.0));
+/// assignment.add_logical_rule(Box::new(l_rule));
+/// assignment.add_arithmetic_rule(SubstitutionToken::M, Box::new(a_rule));
+/// let res = assignment.eval(InputSet::default());
+/// assert_eq!(res, (SubStitutionToken::M, 42.0));
+/// ```
 pub struct Assignment {
     logical_rules: Vec<Box<dyn LogicalRule>>,
     arithmetic_rules: HashMap<SubstitutionToken, Box<dyn ArithmeticRule>>,
 }
 
 impl Assignment {
+    /// Builds `Assignment`.
     pub fn new() -> Self {
         Self {
             logical_rules: Vec::new(),
@@ -32,6 +51,11 @@ impl Assignment {
         }
     }
 
+    /// Adds predefined rules for `Assignment` object.
+    ///
+    /// # Arguments
+    /// * `base` - If true adds base set of rules.
+    /// * `custom` - If true adds custom set of rules.
     pub fn with_rules(mut self, base: bool, custom: bool) -> Self {
         if base {
             Self::add_base_rules(&mut self);
@@ -42,14 +66,26 @@ impl Assignment {
         self
     }
 
+    /// Adds `LogicalRule` to `Assignment`.
     pub fn add_logical_rule(&mut self, rule: Box<dyn LogicalRule>) {
         self.logical_rules.push(rule);
     }
 
+    /// Adds `ArithmeticRule` to `Assignment`.
     pub fn add_arithmetic_rule(&mut self, token: SubstitutionToken, rule: Box<dyn ArithmeticRule>) {
         self.arithmetic_rules.insert(token, rule);
     }
 
+    /// Calculates result of substitution rules for given arguments.
+    ///
+    /// First, goes through all logical rules to get `SubstitutionToken` for arithmetical rules.
+    /// If there are several suitable logical rules, result of the last rule will be taken.
+    /// Returns `Error` if there is no suitable rule for given input.
+    ///
+    /// Then, calculates result of arithmetical rule for found `SubstitutionToken`.
+    /// Returns `Error` if there is no rule for `SubstitutionToken`.
+    ///
+    /// Returns tuple of `SubstitutionToken` and arithmetical rule result as `f64`.
     pub fn eval(&self, args: InputSet) -> Result<(SubstitutionToken, f64), Box<dyn Error>> {
         let mut token = None;
         for r in &self.logical_rules {
@@ -69,6 +105,7 @@ impl Assignment {
         Ok((token, rule.apply(args.d, args.e, args.f)))
     }
 
+    /// Adds set of predefined base rules to `Assignment`.
     fn add_base_rules(obj: &mut Assignment) {
         let rule = LogicalRuleFn::new(SubstitutionToken::M, Box::new(|a, b, c| a && b && !c));
         obj.add_logical_rule(Box::new(rule));
@@ -85,6 +122,7 @@ impl Assignment {
         obj.add_arithmetic_rule(SubstitutionToken::T, Box::new(rule));
     }
 
+    /// Adds set of predefined custom rules to `Assignment`.
     fn add_custom_rules(obj: &mut Assignment) {
         let rule = ArithmeticRuleFn::new(Box::new(|d, e, _| 2.0 * d + (d * e as f64 / 100.0)));
         obj.add_arithmetic_rule(SubstitutionToken::P, Box::new(rule));
