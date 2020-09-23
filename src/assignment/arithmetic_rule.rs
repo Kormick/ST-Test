@@ -49,7 +49,7 @@ impl ArithmeticRule for ArithmeticRuleFn {
     }
 }
 
-/// Stores rule_in a `String` that used for calculation.
+/// Stores rule in a `String` that used for calculation.
 ///
 /// Rule can contain only D, E or F variables and arithmetical operators.
 ///

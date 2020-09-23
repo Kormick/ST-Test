@@ -1,4 +1,4 @@
-//! Implements assignment's main logic.
+//! Implementation of assignment's main logic.
 
 pub mod arithmetic_rule;
 pub mod logical_rule;

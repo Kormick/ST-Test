@@ -1,4 +1,33 @@
-//! Implements simple actix application for assignment.
+//! Implementation of simple actix application for assignment.
+//!
+//! Implements function to create and run HttpServer, 
+//! add Assignment as server application data and bind endpoints.
+//!
+//! # Endpoints
+//!
+//! * /add_logical_rule
+//!
+//!     Endpoint to add new `LogicalRule` to `Assignment`.
+//!     Accepts `AddRuleReq` in JSON format.
+//!
+//!     Returns `HttpResponse::Ok()` if new rule added successfully,
+//!     otherwise returns `HttpResponse::BadRequest` with error message in JSON.
+//!
+//! * /add_arithmetic_rule
+//!
+//!     Endpoint to add new `ArithmeticRule` to `Assignment`.
+//!     Accepts `AddRuleReq` in JSON format.
+//!
+//!     Returns `HttpResponse::Ok()` if new rule added successfully,
+//!     otherwise returns `HttpResponse::BadRequest` with error message in JSON.
+//!
+//! * /eval
+//!
+//!     Endpoint for assignment calculation.
+//!     Accepts `InputSet` in JSON format.
+//!
+//!     If calculation is successful, returns `HttpResponse::Ok()` with result in JSON,
+//!     otherwise `HttpResponse::BadRequest()` with error message in JSON.
 
 use actix_web::{middleware, post, web, App, HttpResponse, HttpServer, Result};
 use serde::{Deserialize, Serialize};
@@ -7,6 +36,7 @@ use std::sync::{Arc, RwLock};
 
 use crate::assignment::{arithmetic_rule::SubstitutionToken, Assignment, InputSet};
 
+/// Request to add new rule.
 #[derive(Serialize, Deserialize)]
 pub struct AddRuleReq {
     token: SubstitutionToken,
