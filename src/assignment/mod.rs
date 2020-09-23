@@ -7,8 +7,8 @@ use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, error::Error};
 
 use crate::assignment::{
-    arithmetic_rule::{ArithmeticRule, ArithmeticRuleFn, SubstitutionToken},
-    logical_rule::{LogicalRule, LogicalRuleFn},
+    arithmetic_rule::{ArithmeticRule, ArithmeticRuleFn, ArithmeticRuleStr, SubstitutionToken},
+    logical_rule::{LogicalRule, LogicalRuleFn, LogicalRuleStr},
 };
 
 /// Set of input arguments for calculation.
@@ -71,9 +71,31 @@ impl Assignment {
         self.logical_rules.push(rule);
     }
 
+    /// Adds `LogicalRule` from string to `Assignment`.
+    pub fn add_logical_rule_from_str(
+        &mut self,
+        token: SubstitutionToken,
+        rule_str: String,
+    ) -> Result<(), Box<dyn Error>> {
+        let rule = LogicalRuleStr::new(token, rule_str)?;
+        self.logical_rules.push(Box::new(rule));
+        Ok(())
+    }
+
     /// Adds `ArithmeticRule` to `Assignment`.
     pub fn add_arithmetic_rule(&mut self, token: SubstitutionToken, rule: Box<dyn ArithmeticRule>) {
         self.arithmetic_rules.insert(token, rule);
+    }
+
+    /// Adds `ArithmeticRule` from string to `Assignment`.
+    pub fn add_arithmetic_rule_from_str(
+        &mut self,
+        token: SubstitutionToken,
+        rule_str: String,
+    ) -> Result<(), Box<dyn Error>> {
+        let rule = ArithmeticRuleStr::new(rule_str)?;
+        self.arithmetic_rules.insert(token, Box::new(rule));
+        Ok(())
     }
 
     /// Calculates result of substitution rules for given arguments.
@@ -191,6 +213,40 @@ fn test_add_logical_rule() {
 }
 
 #[test]
+fn test_add_logical_rule_from_str() {
+    let mut assignment = Assignment::new();
+
+    assignment
+        .add_logical_rule_from_str(SubstitutionToken::M, "A".to_owned())
+        .expect("Should not fail.");
+
+    assert_eq!(assignment.logical_rules.len(), 1);
+    assert_eq!(assignment.arithmetic_rules.len(), 0);
+    assert_eq!(
+        assignment.logical_rules[0].apply(true, true, true),
+        Some(SubstitutionToken::M)
+    );
+    assert_eq!(assignment.logical_rules[0].apply(false, true, true), None);
+
+    assignment
+        .add_logical_rule_from_str(SubstitutionToken::T, "B".to_owned())
+        .expect("Should not fail.");
+    assert_eq!(assignment.logical_rules.len(), 2);
+    assert_eq!(assignment.arithmetic_rules.len(), 0);
+    assert_eq!(
+        assignment.logical_rules[1].apply(true, true, true),
+        Some(SubstitutionToken::T)
+    );
+    assert_eq!(assignment.logical_rules[1].apply(true, false, true), None);
+
+    assignment
+        .add_logical_rule_from_str(SubstitutionToken::P, "Z+X".to_owned())
+        .expect_err("Should fail.");
+    assert_eq!(assignment.logical_rules.len(), 2);
+    assert_eq!(assignment.arithmetic_rules.len(), 0);
+}
+
+#[test]
 fn test_add_arithmetic_rule() {
     let mut assignment = Assignment::new();
 
@@ -223,6 +279,38 @@ fn test_add_arithmetic_rule() {
         assignment.arithmetic_rules[&SubstitutionToken::T].apply(0.0, 0, 2),
         2.0
     );
+}
+
+#[test]
+fn test_add_arithmetic_rule_from_str() {
+    let mut assignment = Assignment::new();
+
+    assignment
+        .add_arithmetic_rule_from_str(SubstitutionToken::M, "D".to_owned())
+        .expect("Should not fail.");
+
+    assert_eq!(assignment.logical_rules.len(), 0);
+    assert_eq!(assignment.arithmetic_rules.len(), 1);
+    assert_eq!(
+        assignment.arithmetic_rules[&SubstitutionToken::M].apply(2.0, 0, 0),
+        2.0
+    );
+
+    assignment
+        .add_arithmetic_rule_from_str(SubstitutionToken::T, "E".to_owned())
+        .expect("Should not fail.");
+    assert_eq!(assignment.logical_rules.len(), 0);
+    assert_eq!(assignment.arithmetic_rules.len(), 2);
+    assert_eq!(
+        assignment.arithmetic_rules[&SubstitutionToken::T].apply(0.0, 2, 0),
+        2.0
+    );
+
+    assignment
+        .add_arithmetic_rule_from_str(SubstitutionToken::P, "Z&&X".to_owned())
+        .expect_err("Should fail.");
+    assert_eq!(assignment.logical_rules.len(), 0);
+    assert_eq!(assignment.arithmetic_rules.len(), 2);
 }
 
 #[test]
