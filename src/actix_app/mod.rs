@@ -3,7 +3,7 @@ use actix_web::{middleware, web, App, HttpServer, Result, HttpResponse, get, pos
 use std::cell::Cell;
 use std::sync::{Arc, Mutex, RwLock};
 
-use crate::assignment::assignment::{Assignment, InputSet};
+use crate::assignment::{Assignment, InputSet};
 
 #[post("/eval")]
 pub async fn eval(data: web::Data<Arc<RwLock<Assignment>>>, item: web::Json<InputSet>) -> Result<HttpResponse> {
