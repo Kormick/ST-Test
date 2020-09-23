@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, error::Error};
 
 use crate::assignment::{
@@ -5,26 +6,31 @@ use crate::assignment::{
     logical_rule::{LogicalRule, LogicalRuleFn},
 };
 
-#[derive(Default)]
-struct InputSet {
-    a: bool,
-    b: bool,
-    c: bool,
-    d: f64,
-    e: i32,
-    f: i32,
+#[derive(Default, Serialize, Deserialize)]
+pub struct InputSet {
+    pub a: bool,
+    pub b: bool,
+    pub c: bool,
+    pub d: f64,
+    pub e: i32,
+    pub f: i32,
 }
 
-struct Assignment {
+pub struct Assignment {
     logical_rules: Vec<Box<dyn LogicalRule>>,
     arithmetic_rules: HashMap<SubstitutionToken, Box<dyn ArithmeticRule>>,
 }
 
 impl Assignment {
-    fn new() -> Self {
-        Self {
+    pub fn new() -> Self {
+        let obj = Self {
             logical_rules: Vec::new(),
             arithmetic_rules: HashMap::new(),
+        };
+
+        obj
+    }
+
     pub fn with_rules(mut self, base: bool, custom: bool) -> Self {
         if base {
             Self::add_base_rules(&mut self);
@@ -35,15 +41,15 @@ impl Assignment {
         self
     }
 
-    fn add_logical_rule(&mut self, rule: Box<dyn LogicalRule>) {
+    pub fn add_logical_rule(&mut self, rule: Box<dyn LogicalRule>) {
         self.logical_rules.push(rule);
     }
 
-    fn add_arithmetic_rule(&mut self, token: SubstitutionToken, rule: Box<dyn ArithmeticRule>) {
+    pub fn add_arithmetic_rule(&mut self, token: SubstitutionToken, rule: Box<dyn ArithmeticRule>) {
         self.arithmetic_rules.insert(token, rule);
     }
 
-    fn eval(&self, args: InputSet) -> Result<(SubstitutionToken, f64), Box<dyn Error>> {
+    pub fn eval(&self, args: InputSet) -> Result<(SubstitutionToken, f64), Box<dyn Error>> {
         let mut token = None;
         for r in &self.logical_rules {
             let t = r.apply(args.a, args.b, args.c);

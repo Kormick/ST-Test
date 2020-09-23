@@ -1,4 +1,6 @@
-#[derive(Hash, Eq, PartialEq, Clone, Debug)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Hash, Eq, PartialEq, Clone, Debug, Serialize, Deserialize)]
 pub enum SubstitutionToken {
     M,
     P,
