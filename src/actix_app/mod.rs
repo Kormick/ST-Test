@@ -1,30 +1,27 @@
-use actix_web::{middleware, web, App, HttpServer, Result, HttpResponse, get, post};
+use actix_web::{middleware, web, App, HttpServer, Result, HttpResponse, post};
 
-use std::cell::Cell;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, RwLock};
 
 use crate::assignment::{Assignment, InputSet};
 
 #[post("/eval")]
 pub async fn eval(data: web::Data<Arc<RwLock<Assignment>>>, item: web::Json<InputSet>) -> Result<HttpResponse> {
-    println!("Eval requested");
-
     let data = (*data).read().unwrap();
     let res = data.eval(item.0);
 
     if res.is_err() {
-        Ok(HttpResponse::BadRequest().json(res.unwrap_err().description()))
+        Ok(HttpResponse::BadRequest().json(res.unwrap_err().to_string()))
     } else {
         Ok(HttpResponse::Ok().json(res.unwrap()))
     }
 }
 
 pub async fn run_actix_app() -> std::io::Result<()> {
-    std::env::set_var("RUST_LOG", "actix_web=debug");
+    std::env::set_var("RUST_LOG", "actix_web=info");
     env_logger::init();
 
     HttpServer::new(move || {
-        let data = web::Data::new(Arc::new(RwLock::new(Assignment::new())));
+        let data = web::Data::new(Arc::new(RwLock::new(Assignment::new().with_rules(true, true))));
 
         App::new()
             .wrap(middleware::Logger::default())
