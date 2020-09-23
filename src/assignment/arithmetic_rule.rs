@@ -27,15 +27,15 @@ impl ArithmeticRule for ArithmeticRuleFn {
 
 #[test]
 fn test_new() {
-    let rule = ArithmeticRule::new(Box::new(|_, _, _| 2.0));
+    let rule = ArithmeticRuleFn::new(Box::new(|_, _, _| 2.0));
     assert_eq!((rule.rule_fn)(0.0, 0, 0), 2.0, "Invalid rule_fn is set.");
 }
 
 #[test]
 fn test_apply() {
-    let rule = ArithmeticRule::new(Box::new(|_, _, _| 2.0));
+    let rule = ArithmeticRuleFn::new(Box::new(|_, _, _| 2.0));
     assert_eq!(rule.apply(0.0, 0, 0), 2.0);
 
-    let rule = ArithmeticRule::new(Box::new(|_, _, _| 1.0 / 0.0 as f64));
+    let rule = ArithmeticRuleFn::new(Box::new(|_, _, _| 1.0 / 0.0 as f64));
     assert!(!rule.apply(0.0, 0, 0).is_normal());
 }

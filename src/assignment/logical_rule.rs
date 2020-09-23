@@ -27,7 +27,7 @@ impl LogicalRule for LogicalRuleFn {
 
 #[test]
 fn test_new() {
-    let rule = LogicalRule::new(SubstitutionToken::M, Box::new(|a, _, _| a));
+    let rule = LogicalRuleFn::new(SubstitutionToken::M, Box::new(|a, _, _| a));
 
     assert_eq!(rule.token, SubstitutionToken::M, "Invalid token is set.");
     assert_eq!(
@@ -44,7 +44,7 @@ fn test_new() {
 
 #[test]
 fn test_apply() {
-    let rule = LogicalRule::new(SubstitutionToken::M, Box::new(|a, _, _| a));
+    let rule = LogicalRuleFn::new(SubstitutionToken::M, Box::new(|a, _, _| a));
 
     assert_eq!(rule.apply(true, true, true), Some(SubstitutionToken::M));
     assert_eq!(rule.apply(false, true, true), None);

@@ -68,7 +68,7 @@ fn test_new() {
 fn test_add_logical_rule() {
     let mut assignment = Assignment::new();
 
-    let rule0 = LogicalRule::new(SubstitutionToken::M, Box::new(|a, b, c| a));
+    let rule0 = LogicalRuleFn::new(SubstitutionToken::M, Box::new(|a, b, c| a));
     assignment.add_logical_rule(Box::new(rule0));
 
     assert_eq!(assignment.logical_rules.len(), 1);
@@ -79,7 +79,7 @@ fn test_add_logical_rule() {
     );
     assert_eq!(assignment.logical_rules[0].apply(false, true, true), None);
 
-    let rule1 = LogicalRule::new(SubstitutionToken::T, Box::new(|a, b, c| b));
+    let rule1 = LogicalRuleFn::new(SubstitutionToken::T, Box::new(|a, b, c| b));
     assignment.add_logical_rule(Box::new(rule1));
 
     assert_eq!(assignment.logical_rules.len(), 2);
@@ -95,7 +95,7 @@ fn test_add_logical_rule() {
 fn test_add_arithmetic_rule() {
     let mut assignment = Assignment::new();
 
-    let rule0 = ArithmeticRule::new(Box::new(|d, e, f| d));
+    let rule0 = ArithmeticRuleFn::new(Box::new(|d, e, f| d));
     assignment.add_arithmetic_rule(SubstitutionToken::M, Box::new(rule0));
 
     assert_eq!(assignment.logical_rules.len(), 0);
@@ -105,7 +105,7 @@ fn test_add_arithmetic_rule() {
         2.0
     );
 
-    let rule1 = ArithmeticRule::new(Box::new(|d, e, f| e as f64));
+    let rule1 = ArithmeticRuleFn::new(Box::new(|d, e, f| e as f64));
     assignment.add_arithmetic_rule(SubstitutionToken::T, Box::new(rule1));
 
     assert_eq!(assignment.logical_rules.len(), 0);
@@ -115,7 +115,7 @@ fn test_add_arithmetic_rule() {
         2.0
     );
 
-    let rule2 = ArithmeticRule::new(Box::new(|d, e, f| f as f64));
+    let rule2 = ArithmeticRuleFn::new(Box::new(|d, e, f| f as f64));
     assignment.add_arithmetic_rule(SubstitutionToken::T, Box::new(rule2));
 
     assert_eq!(assignment.logical_rules.len(), 0);
@@ -131,7 +131,7 @@ fn test_add_arithmetic_rule() {
 fn test_eval_empty_logical_rules() {
     let mut assignment = Assignment::new();
 
-    let rule = ArithmeticRule::new(Box::new(|_, _, _| 0.0));
+    let rule = ArithmeticRuleFn::new(Box::new(|_, _, _| 0.0));
     assignment.add_arithmetic_rule(SubstitutionToken::M, Box::new(rule));
     assignment.eval(InputSet::default()).unwrap();
 }
@@ -141,7 +141,7 @@ fn test_eval_empty_logical_rules() {
 fn test_eval_empty_arithmetic_rules() {
     let mut assignment = Assignment::new();
 
-    let rule = LogicalRule::new(SubstitutionToken::M, Box::new(|_, _, _| true));
+    let rule = LogicalRuleFn::new(SubstitutionToken::M, Box::new(|_, _, _| true));
     assignment.add_logical_rule(Box::new(rule));
     assignment.eval(InputSet::default()).unwrap();
 }
@@ -150,13 +150,13 @@ fn test_eval_empty_arithmetic_rules() {
 fn test_eval() {
     let mut assignment = Assignment::new();
 
-    let rule = LogicalRule::new(SubstitutionToken::M, Box::new(|a, b, c| a));
+    let rule = LogicalRuleFn::new(SubstitutionToken::M, Box::new(|a, b, c| a));
     assignment.add_logical_rule(Box::new(rule));
-    let rule = LogicalRule::new(SubstitutionToken::T, Box::new(|a, b, c| b));
+    let rule = LogicalRuleFn::new(SubstitutionToken::T, Box::new(|a, b, c| b));
     assignment.add_logical_rule(Box::new(rule));
-    let rule = ArithmeticRule::new(Box::new(|_, _, _| 2.0));
+    let rule = ArithmeticRuleFn::new(Box::new(|_, _, _| 2.0));
     assignment.add_arithmetic_rule(SubstitutionToken::M, Box::new(rule));
-    let rule = ArithmeticRule::new(Box::new(|_, _, _| 3.0));
+    let rule = ArithmeticRuleFn::new(Box::new(|_, _, _| 3.0));
     assignment.add_arithmetic_rule(SubstitutionToken::T, Box::new(rule));
 
     let res = assignment
@@ -184,7 +184,7 @@ fn test_eval() {
     assert_eq!(res, (SubstitutionToken::T, 3.0));
 
     // Override logical rule to substitute to another arithmetic rule.
-    let rule = LogicalRule::new(SubstitutionToken::T, Box::new(|a, b, c| a));
+    let rule = LogicalRuleFn::new(SubstitutionToken::T, Box::new(|a, b, c| a));
     assignment.add_logical_rule(Box::new(rule));
 
     let res = assignment
@@ -200,7 +200,7 @@ fn test_eval() {
     assert_eq!(res, (SubstitutionToken::T, 3.0));
 
     // Override arithmetic rule.
-    let rule = ArithmeticRule::new(Box::new(|_, _, _| 4.0));
+    let rule = ArithmeticRuleFn::new(Box::new(|_, _, _| 4.0));
     assignment.add_arithmetic_rule(SubstitutionToken::T, Box::new(rule));
 
     let res = assignment
@@ -216,7 +216,7 @@ fn test_eval() {
     assert_eq!(res, (SubstitutionToken::T, 4.0));
 
     // Override logical rule to no arithmetic rule.
-    let rule = LogicalRule::new(SubstitutionToken::P, Box::new(|a, b, c| a));
+    let rule = LogicalRuleFn::new(SubstitutionToken::P, Box::new(|a, b, c| a));
     assignment.add_logical_rule(Box::new(rule));
 
     let res = assignment.eval(InputSet {
