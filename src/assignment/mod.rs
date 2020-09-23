@@ -26,12 +26,10 @@ pub struct Assignment {
 
 impl Assignment {
     pub fn new() -> Self {
-        let obj = Self {
+        Self {
             logical_rules: Vec::new(),
             arithmetic_rules: HashMap::new(),
-        };
-
-        obj
+        }
     }
 
     pub fn with_rules(mut self, base: bool, custom: bool) -> Self {
