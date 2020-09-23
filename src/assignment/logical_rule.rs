@@ -57,7 +57,7 @@ impl LogicalRule for LogicalRuleFn {
 /// # Examples
 ///
 /// ```
-/// let rule = LogicalRuleStr::from_str(SubstitutionToken::M, "A && B").unwrap();
+/// let rule = LogicalRuleStr::new(SubstitutionToken::M, "A && B").unwrap();
 /// let res = rule.apply(true, true, false);
 /// assert_eq!(res, Some(SubstitutionToken::M));
 /// let res = rule.apply(false, true, false);
@@ -72,9 +72,8 @@ impl LogicalRuleStr {
     /// Validates provided rule string and builds `LogicalRuleFn`.
     /// Returns `Ok(LogicalRuleStr)` if validation is successful,
     /// otherwise returns error with description.
-    pub fn from_str(token: SubstitutionToken, rule_str: String) -> Result<Self, Box<dyn Error>> {
+    pub fn new(token: SubstitutionToken, rule_str: String) -> Result<Self, Box<dyn Error>> {
         let rule_str = LogicalRuleStr::validate(rule_str)?;
-
         Ok(Self { token, rule_str })
     }
 
@@ -150,6 +149,15 @@ fn test_apply() {
 #[test]
 fn test_validate() {
     assert_eq!(
+        LogicalRuleStr::validate("".to_owned())
+            .unwrap_err()
+            .to_string(),
+        "Expression contains invalid variables or operators."
+    );
+
+    assert_eq!(LogicalRuleStr::validate("A".to_owned()).unwrap(), "A");
+
+    assert_eq!(
         LogicalRuleStr::validate("A && B || C".to_owned()).unwrap(),
         "A&&B||C"
     );
@@ -165,6 +173,7 @@ fn test_validate() {
         LogicalRuleStr::validate("A != B".to_owned()).unwrap(),
         "A!=B"
     );
+
     assert_eq!(
         LogicalRuleStr::validate("A || D".to_owned())
             .unwrap_err()
@@ -178,16 +187,41 @@ fn test_validate() {
         "Expression contains invalid variables or operators."
     );
     assert_eq!(
+        LogicalRuleStr::validate("A - B".to_owned())
+            .unwrap_err()
+            .to_string(),
+        "Expression contains invalid variables or operators."
+    );
+    assert_eq!(
+        LogicalRuleStr::validate("A * B".to_owned())
+            .unwrap_err()
+            .to_string(),
+        "Expression contains invalid variables or operators."
+    );
+    assert_eq!(
+        LogicalRuleStr::validate("A / B".to_owned())
+            .unwrap_err()
+            .to_string(),
+        "Expression contains invalid variables or operators."
+    );
+
+    assert_eq!(
         LogicalRuleStr::validate("A&&&&B".to_owned())
             .unwrap_err()
             .to_string(),
         eval::Error::DuplicateOperatorNode.to_string()
     );
+    assert_eq!(
+        LogicalRuleStr::validate("&&A".to_owned())
+            .unwrap_err()
+            .to_string(),
+        eval::Error::StartWithNonValueOperator.to_string()
+    );
 }
 
 #[test]
 fn test_apply_str() {
-    let rule = LogicalRuleStr::from_str(SubstitutionToken::M, "A".to_owned()).unwrap();
+    let rule = LogicalRuleStr::new(SubstitutionToken::M, "A".to_owned()).unwrap();
 
     assert_eq!(rule.apply(true, true, true), Some(SubstitutionToken::M));
     assert_eq!(rule.apply(false, true, true), None);
