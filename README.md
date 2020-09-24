@@ -37,6 +37,7 @@ Provides `apply` method interface that takes 3 `bool` values and returns substit
 There are 2 derived implementations for `LogicalRule`:
 * `LogicalRuleFn` - handles logical substitution rule as `Fn` with `(bool, bool, bool) -> bool` signature (e.g., `|a, b, c| a && b && c`).
 * `LogicalRuleStr` - handles logical substitution rule as `String`, which is evaluated with `evalexpr` library (e.g., `"A && B && C"`).
+    Rule string can contain only A, B or C variables and !, &&, ||, ==, != operators.
     This approach should be more human-friendly.
 
 #### trait `ArithmeticRule`
@@ -45,6 +46,7 @@ Provides `apply` method interface that takes `f64`, `i32` and `i32` values and r
 There are 2 derived implementations for `ArithmeticRule`:
 * `ArithmeticRuleFn` - handles arithmetic substitution as `Fn` with `(f64, i32, i32) -> f64` signature (e.g., `|d, e, f| d + e * f`).
 * `ArithmeticRuleStr` - handles arithmetic substitution as `String`, which is evaluated with `evalexpr` library (e.g., `D + E * F`).
+    Rule string can contain only D, E, or F variables and +, -, *, \/ operators.
     This approach should be more human-friendly.
 
 ### mod actix_app
