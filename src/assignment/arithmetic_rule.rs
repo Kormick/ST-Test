@@ -1,5 +1,5 @@
-use eval::Expr;
-use regex::{Captures, Regex};
+use evalexpr::*;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use std::error::Error;
@@ -66,46 +66,43 @@ pub struct ArithmeticRuleStr {
 
 impl ArithmeticRuleStr {
     pub fn new(rule_str: String) -> Result<Self, Box<dyn Error>> {
-        let rule_str = ArithmeticRuleStr::validate(rule_str)?;
+        ArithmeticRuleStr::validate(&rule_str)?;
         Ok(Self { rule_str })
     }
 
-    fn validate(rule_str: String) -> Result<String, Box<dyn Error>> {
+    /// Validates provided rule string.
+    /// Returns error if it contains invalid variables or operators,
+    /// or if it's not compilable by `evalexpr`,
+    /// otherwise returns `Ok`.
+    fn validate(rule_str: &String) -> Result<(), Box<dyn Error>> {
         let re = Regex::new(r"^([\dDEF ]|\+|-|\*|/|\(|\))+$").unwrap();
         if !re.is_match(&rule_str) {
             Err("Expression contains invalid variables or operators.")?
         }
 
-        // Remove all whitespaces.
-        let rule_str: String = rule_str.chars().filter(|c| !c.is_whitespace()).collect();
+        // Try to evaluate expression with some input to check if it's valid for `evalexpr`.
+        let context = context_map! {
+            "D" => 0.0,
+            "E" => 0 as f64,
+            "F" => 0 as f64,
+        }
+        .unwrap();
+        eval_float_with_context(&rule_str, &context)?;
 
-        // Wrap all '-VAR' expressions with in '()', as it's required by eval::Expr.
-        let re = Regex::new(r"-[\dDEF]").unwrap();
-        let rule_str = re.replace_all(&rule_str, |caps: &Captures| format!("({})", &caps[0]));
-
-        // Try to compile expression to check if it's valid.
-        Expr::new(rule_str.clone()).compile()?;
-
-        Ok(String::from(rule_str))
+        Ok(())
     }
 }
 
 impl ArithmeticRule for ArithmeticRuleStr {
     fn apply(&self, d: f64, e: i32, f: i32) -> f64 {
-        let res = Expr::new(&self.rule_str)
-            .value("D", d)
-            .value("E", e)
-            .value("F", f)
-            .exec()
-            .unwrap()
-            .as_f64();
-
-        if res.is_none() {
-            // `eval::Expr` does not handle division by zero correctly :c
-            f64::NAN
-        } else {
-            res.unwrap()
+        let context = context_map! {
+            "D" => d,
+            "E" => e as f64,
+            "F" => f as f64,
         }
+        .unwrap();
+
+        eval_float_with_context(&self.rule_str, &context).unwrap()
     }
 }
 
@@ -126,70 +123,59 @@ fn test_apply() {
 
 #[test]
 fn test_validate() {
-    assert_eq!(
-        ArithmeticRuleStr::validate("".to_owned())
-            .unwrap_err()
-            .to_string(),
-        "Expression contains invalid variables or operators."
-    );
-
-    assert_eq!(ArithmeticRuleStr::validate("D".to_owned()).unwrap(), "D");
-    assert_eq!(
-        ArithmeticRuleStr::validate("A".to_owned())
-            .unwrap_err()
-            .to_string(),
-        "Expression contains invalid variables or operators."
-    );
+    assert!(ArithmeticRuleStr::validate(&"D".to_owned()).is_ok());
+    assert!(ArithmeticRuleStr::validate(&"-D + E".to_owned()).is_ok());
+    assert!(ArithmeticRuleStr::validate(&"D * (-E + F)".to_owned()).is_ok());
+    assert!(ArithmeticRuleStr::validate(&"-2 * D".to_owned()).is_ok());
 
     assert_eq!(
-        ArithmeticRuleStr::validate("-D + E".to_owned()).unwrap(),
-        "(-D)+E"
-    );
-    assert_eq!(
-        ArithmeticRuleStr::validate("D * (-E + F)".to_owned()).unwrap(),
-        "D*((-E)+F)"
-    );
-    assert_eq!(
-        ArithmeticRuleStr::validate("2 * D".to_owned()).unwrap(),
-        "2*D"
-    );
-
-    assert_eq!(
-        ArithmeticRuleStr::validate("D && E".to_owned())
+        ArithmeticRuleStr::validate(&"".to_owned())
             .unwrap_err()
             .to_string(),
         "Expression contains invalid variables or operators."
     );
     assert_eq!(
-        ArithmeticRuleStr::validate("D || E".to_owned())
+        ArithmeticRuleStr::validate(&"A".to_owned())
             .unwrap_err()
             .to_string(),
         "Expression contains invalid variables or operators."
     );
     assert_eq!(
-        ArithmeticRuleStr::validate("D == E".to_owned())
+        ArithmeticRuleStr::validate(&"D && E".to_owned())
             .unwrap_err()
             .to_string(),
         "Expression contains invalid variables or operators."
     );
     assert_eq!(
-        ArithmeticRuleStr::validate("D != E".to_owned())
+        ArithmeticRuleStr::validate(&"D || E".to_owned())
+            .unwrap_err()
+            .to_string(),
+        "Expression contains invalid variables or operators."
+    );
+    assert_eq!(
+        ArithmeticRuleStr::validate(&"D == E".to_owned())
+            .unwrap_err()
+            .to_string(),
+        "Expression contains invalid variables or operators."
+    );
+    assert_eq!(
+        ArithmeticRuleStr::validate(&"D != E".to_owned())
             .unwrap_err()
             .to_string(),
         "Expression contains invalid variables or operators."
     );
 
     assert_eq!(
-        ArithmeticRuleStr::validate("/D * E".to_owned())
+        ArithmeticRuleStr::validate(&"/D * E".to_owned())
             .unwrap_err()
             .to_string(),
-        eval::Error::StartWithNonValueOperator.to_string()
+        "An operator expected 2 arguments, but got 1."
     );
     assert_eq!(
-        ArithmeticRuleStr::validate("D ** E".to_owned())
+        ArithmeticRuleStr::validate(&"D ** E".to_owned())
             .unwrap_err()
             .to_string(),
-        eval::Error::DuplicateOperatorNode.to_string()
+        "An operator expected 2 arguments, but got 1."
     );
 }
 

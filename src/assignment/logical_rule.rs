@@ -1,5 +1,5 @@
-use eval::Expr;
-use regex::{Captures, Regex};
+use evalexpr::*;
+use regex::Regex;
 
 use std::error::Error;
 
@@ -73,45 +73,42 @@ impl LogicalRuleStr {
     /// Returns `Ok(LogicalRuleStr)` if validation is successful,
     /// otherwise returns error with description.
     pub fn new(token: SubstitutionToken, rule_str: String) -> Result<Self, Box<dyn Error>> {
-        let rule_str = LogicalRuleStr::validate(rule_str)?;
+        LogicalRuleStr::validate(&rule_str)?;
         Ok(Self { token, rule_str })
     }
 
     /// Validates provided rule string.
     /// Returns error if it contains invalid variables or operators,
-    /// or if it's not compilable by `eval::Expr`.
-    /// Otherwise, return Ok() with rule string with removed whitespaces
-    /// and parenthesized 'not VAR' expressions.
-    fn validate(rule_str: String) -> Result<String, Box<dyn Error>> {
+    /// or if it's not compilable by `evalexpr`,
+    /// otherwise returns `Ok`.
+    fn validate(rule_str: &String) -> Result<(), Box<dyn Error>> {
         let re = Regex::new(r"^([ABC ]|&&|==|!=|!|\|\|)+$").unwrap();
         if !re.is_match(&rule_str) {
             Err("Expression contains invalid variables or operators.")?
         }
 
-        // Remove all whitespaces.
-        let rule_str: String = rule_str.chars().filter(|c| !c.is_whitespace()).collect();
+        // Try to evaluate expression with some input to check if it's valid for `evalexpr`.
+        let context = context_map! {
+            "A" => true,
+            "B" => true,
+            "C" => true,
+        }
+        .unwrap();
+        eval_boolean_with_context(&rule_str, &context)?;
 
-        // Wrap all 'not VAR' expressions in '()', as it's required by eval::Expr.
-        let re = Regex::new(r"![ABC]").unwrap();
-        let res = re.replace_all(&rule_str, |caps: &Captures| format!("({})", &caps[0]));
-
-        // Try to compile expression to check if it's valid.
-        Expr::new(res.clone()).compile()?;
-
-        Ok(String::from(res))
+        Ok(())
     }
 }
 
 impl LogicalRule for LogicalRuleStr {
     fn apply(&self, a: bool, b: bool, c: bool) -> Option<SubstitutionToken> {
-        let res: bool = Expr::new(&self.rule_str)
-            .value("A", a)
-            .value("B", b)
-            .value("C", c)
-            .exec()
-            .unwrap()
-            .as_bool()
-            .unwrap();
+        let context = context_map! {
+            "A" => a,
+            "B" => b,
+            "C" => c,
+        }
+        .unwrap();
+        let res = eval_boolean_with_context(&self.rule_str, &context).unwrap();
 
         if res {
             Some(self.token.clone())
@@ -148,74 +145,60 @@ fn test_apply() {
 
 #[test]
 fn test_validate() {
-    assert_eq!(
-        LogicalRuleStr::validate("".to_owned())
-            .unwrap_err()
-            .to_string(),
-        "Expression contains invalid variables or operators."
-    );
-
-    assert_eq!(LogicalRuleStr::validate("A".to_owned()).unwrap(), "A");
+    assert!(LogicalRuleStr::validate(&"A".to_owned()).is_ok());
+    assert!(LogicalRuleStr::validate(&"A && B || C".to_owned()).is_ok());
+    assert!(LogicalRuleStr::validate(&"A && !B || C".to_owned()).is_ok());
+    assert!(LogicalRuleStr::validate(&"A == B".to_owned()).is_ok());
+    assert!(LogicalRuleStr::validate(&"A != B".to_owned()).is_ok());
 
     assert_eq!(
-        LogicalRuleStr::validate("A && B || C".to_owned()).unwrap(),
-        "A&&B||C"
-    );
-    assert_eq!(
-        LogicalRuleStr::validate("A && !B || C".to_owned()).unwrap(),
-        "A&&(!B)||C"
-    );
-    assert_eq!(
-        LogicalRuleStr::validate("A == B".to_owned()).unwrap(),
-        "A==B"
-    );
-    assert_eq!(
-        LogicalRuleStr::validate("A != B".to_owned()).unwrap(),
-        "A!=B"
-    );
-
-    assert_eq!(
-        LogicalRuleStr::validate("A || D".to_owned())
+        LogicalRuleStr::validate(&"".to_owned())
             .unwrap_err()
             .to_string(),
         "Expression contains invalid variables or operators."
     );
     assert_eq!(
-        LogicalRuleStr::validate("A + B".to_owned())
+        LogicalRuleStr::validate(&"A || D".to_owned())
             .unwrap_err()
             .to_string(),
         "Expression contains invalid variables or operators."
     );
     assert_eq!(
-        LogicalRuleStr::validate("A - B".to_owned())
+        LogicalRuleStr::validate(&"A + B".to_owned())
             .unwrap_err()
             .to_string(),
         "Expression contains invalid variables or operators."
     );
     assert_eq!(
-        LogicalRuleStr::validate("A * B".to_owned())
+        LogicalRuleStr::validate(&"A - B".to_owned())
             .unwrap_err()
             .to_string(),
         "Expression contains invalid variables or operators."
     );
     assert_eq!(
-        LogicalRuleStr::validate("A / B".to_owned())
+        LogicalRuleStr::validate(&"A * B".to_owned())
+            .unwrap_err()
+            .to_string(),
+        "Expression contains invalid variables or operators."
+    );
+    assert_eq!(
+        LogicalRuleStr::validate(&"A / B".to_owned())
             .unwrap_err()
             .to_string(),
         "Expression contains invalid variables or operators."
     );
 
     assert_eq!(
-        LogicalRuleStr::validate("A&&&&B".to_owned())
+        LogicalRuleStr::validate(&"A&&&&B".to_owned())
             .unwrap_err()
             .to_string(),
-        eval::Error::DuplicateOperatorNode.to_string()
+        "An operator expected 2 arguments, but got 1."
     );
     assert_eq!(
-        LogicalRuleStr::validate("&&A".to_owned())
+        LogicalRuleStr::validate(&"&&A".to_owned())
             .unwrap_err()
             .to_string(),
-        eval::Error::StartWithNonValueOperator.to_string()
+        "An operator expected 2 arguments, but got 1."
     );
 }
 
