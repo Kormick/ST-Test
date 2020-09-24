@@ -36,18 +36,16 @@ Provides `apply` method interface that takes 3 `bool` values and returns substit
 
 There are 2 derived implementations for `LogicalRule`:
 * `LogicalRuleFn` - handles logical substitution rule as `Fn` with `(bool, bool, bool) -> bool` signature (e.g., `|a, b, c| a && b && c`).
-* `LogicalRuleStr` - handles logical substitution rule as `String`, which is evaluated with `eval` library (e.g., `"A && B && C"`).
+* `LogicalRuleStr` - handles logical substitution rule as `String`, which is evaluated with `evalexpr` library (e.g., `"A && B && C"`).
     This approach should be more human-friendly.
-    Unfortunately, I overlooked that `eval` does not work with unary operators, so it will not work for all expressions.
 
 #### trait `ArithmeticRule`
 Provides `apply` method interface that takes `f64`, `i32` and `i32` values and returns result of expression evaluation as `f64`.
 
 There are 2 derived implementations for `ArithmeticRule`:
 * `ArithmeticRuleFn` - handles arithmetic substitution as `Fn` with `(f64, i32, i32) -> f64` signature (e.g., `|d, e, f| d + e * f`).
-* `ArithmeticRuleStr` - handles arithmetic substitution as `String`, which is evaluated with `eval` library (e.g., `D + E * F`).
+* `ArithmeticRuleStr` - handles arithmetic substitution as `String`, which is evaluated with `evalexpr` library (e.g., `D + E * F`).
     This approach should be more human-friendly.
-    Unfortunately, I overlooked that `eval` does not work with unary operators, so it will not work for all expressions.
 
 ### mod actix_app
 Simple actix server application that provides REST API for assignment.
